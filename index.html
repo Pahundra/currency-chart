@@ -108,7 +108,8 @@
         <div class="selector">
             <button class="currency-btn active" data-symbol="BTCUSDT">BTC</button>
             <button class="currency-btn" data-symbol="TONUSDT">TON</button>
-            <button class="currency-btn" data-symbol="USDTUSDT">USDT</button>
+            <button class="currency-btn" data-symbol="USDTRUB">USDT/RUB</button>
+            <button class="currency-btn" data-symbol="EURRUB">EUR/RUB</button>
         </div>
         <div class="chart-container" id="tradingview_widget"></div>
         <div class="price-info">
@@ -119,7 +120,7 @@
             </span>
         </div>
         <footer>
-            Данные предоставлены Binance • <a href="https://t.me/ResendTm_bot" target="_blank">@ResendTm_bot</a>
+            Данные: Binance, MOEX, exchangerate.host • <a href="https://t.me/ResendTm_bot" target="_blank">@ResendTm_bot</a>
         </footer>
     </div>
 
@@ -129,13 +130,21 @@
         let currentSymbol = 'BTCUSDT';
         let widget = null;
 
-        // Функция создания виджета TradingView
+        // Функция создания виджета TradingView (разные символы для разных валют)
         function createWidget(symbol) {
             const container = document.getElementById('tradingview_widget');
-            container.innerHTML = ''; // очищаем перед созданием нового
+            container.innerHTML = '';
+            
+            let tvSymbol;
+            if (symbol === 'BTCUSDT') tvSymbol = 'BINANCE:BTCUSDT';
+            else if (symbol === 'TONUSDT') tvSymbol = 'BINANCE:TONUSDT';
+            else if (symbol === 'USDTRUB') tvSymbol = 'BINANCE:USDTRUB';
+            else if (symbol === 'EURRUB') tvSymbol = 'MOEX:EUR/RUB';
+            else tvSymbol = 'BINANCE:BTCUSDT'; // fallback
+
             widget = new TradingView.widget({
                 autosize: true,
-                symbol: `BINANCE:${symbol}`,
+                symbol: tvSymbol,
                 interval: '60',
                 timezone: 'Europe/Moscow',
                 theme: 'dark',
@@ -150,17 +159,40 @@
             });
         }
 
-        // Функция получения текущей цены и изменения через Binance API
+        // Функция получения цены и изменения
         async function fetchPrice(symbol) {
             try {
-                const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-                const data = await response.json();
-                const price = parseFloat(data.lastPrice).toFixed(2);
-                const change = parseFloat(data.priceChangePercent).toFixed(2);
-                document.getElementById('price').textContent = `$${price}`;
-                const changeEl = document.getElementById('change');
-                changeEl.textContent = `${change}%`;
-                changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
+                if (symbol === 'EURRUB') {
+                    // Используем бесплатный API exchangerate.host для EUR/RUB
+                    const response = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=RUB');
+                    const data = await response.json();
+                    const price = data.rates.RUB.toFixed(2);
+                    // Для изменения цены за 24ч нужно другое API, пропустим
+                    document.getElementById('price').textContent = `${price} ₽`;
+                    document.getElementById('change').textContent = '—';
+                } 
+                else if (symbol === 'USDTRUB') {
+                    // Binance API для USDT/RUB
+                    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=USDTRUB');
+                    const data = await response.json();
+                    const price = parseFloat(data.lastPrice).toFixed(2);
+                    const change = parseFloat(data.priceChangePercent).toFixed(2);
+                    document.getElementById('price').textContent = `${price} ₽`;
+                    const changeEl = document.getElementById('change');
+                    changeEl.textContent = `${change}%`;
+                    changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
+                }
+                else {
+                    // Binance API для BTCUSDT, TONUSDT (к доллару)
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+                    const data = await response.json();
+                    const price = parseFloat(data.lastPrice).toFixed(2);
+                    const change = parseFloat(data.priceChangePercent).toFixed(2);
+                    document.getElementById('price').textContent = `$${price}`;
+                    const changeEl = document.getElementById('change');
+                    changeEl.textContent = `${change}%`;
+                    changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
+                }
             } catch (e) {
                 document.getElementById('price').textContent = '—';
                 document.getElementById('change').textContent = '—';
@@ -173,29 +205,20 @@
                 document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentSymbol = this.dataset.symbol;
-                if (currentSymbol === 'USDTUSDT') {
-                    // Для USDT/USDT показываем индекс доллара
-                    createWidget('USDTUSD');
-                    fetchPrice('USDTUSDT');
-                } else {
-                    createWidget(currentSymbol);
-                    fetchPrice(currentSymbol);
-                }
+                createWidget(currentSymbol);
+                fetchPrice(currentSymbol);
             });
         });
 
         // Инициализация с BTC
         createWidget('BTCUSDT');
         fetchPrice('BTCUSDT');
+
         // Обновление цены каждые 10 секунд
         setInterval(() => {
             const activeBtn = document.querySelector('.currency-btn.active');
             const symbol = activeBtn.dataset.symbol;
-            if (symbol === 'USDTUSDT') {
-                fetchPrice('USDTUSDT');
-            } else {
-                fetchPrice(symbol);
-            }
+            fetchPrice(symbol);
         }, 10000);
     </script>
 </body>
