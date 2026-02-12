@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>График валют</title>
+    <title>График валют — Полный инструментарий</title>
     <style>
         body {
             margin: 0;
@@ -19,20 +19,20 @@
         }
         .container {
             width: 100%;
-            max-width: 600px;
-            padding: 16px;
+            max-width: 800px;
+            padding: 12px;
             box-sizing: border-box;
         }
         h1 {
             font-size: 24px;
-            margin: 0 0 16px 0;
+            margin: 0 0 12px 0;
             color: #f0b90b;
             text-align: center;
         }
         .selector {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 15px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -40,9 +40,9 @@
             background: #1e2329;
             border: 1px solid #2b3139;
             color: white;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -54,33 +54,36 @@
         }
         .chart-container {
             width: 100%;
-            height: 400px;
+            height: 500px;
             background: #1e2329;
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 20px;
+            border: 1px solid #2b3139;
         }
         .price-info {
             background: #1e2329;
             border-radius: 12px;
-            padding: 16px;
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid #2b3139;
         }
         .price-label {
             color: #848e9c;
-            font-size: 14px;
+            font-size: 15px;
         }
         .price-value {
             color: white;
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 600;
+            margin-right: 12px;
         }
         .price-change {
             font-size: 16px;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
         }
         .positive {
             color: #0ecb81;
@@ -100,24 +103,33 @@
             color: #f0b90b;
             text-decoration: none;
         }
+        .note {
+            margin-top: 8px;
+            color: #848e9c;
+            font-size: 12px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📈 График валют</h1>
         <div class="selector">
-            <button class="currency-btn active" data-symbol="BTCUSDT">BTC</button>
-            <button class="currency-btn" data-symbol="TONUSDT">TON</button>
+            <button class="currency-btn active" data-symbol="BTCUSDT">BTC/USDT</button>
+            <button class="currency-btn" data-symbol="TONUSDT">TON/USDT</button>
             <button class="currency-btn" data-symbol="USDTRUB">USDT/RUB</button>
             <button class="currency-btn" data-symbol="EURRUB">EUR/RUB</button>
         </div>
         <div class="chart-container" id="tradingview_widget"></div>
         <div class="price-info">
             <span class="price-label">Текущая цена</span>
-            <span>
+            <span style="display: flex; align-items: center;">
                 <span class="price-value" id="price">—</span>
                 <span id="change" class="price-change">—</span>
             </span>
+        </div>
+        <div class="note">
+            🛠️ Доступны: смена стиля (свечи/линии/бары), рисование, индикаторы, таймфреймы.
         </div>
         <footer>
             Данные: Binance, MOEX, exchangerate.host • <a href="https://t.me/ResendTm_bot" target="_blank">@ResendTm_bot</a>
@@ -130,70 +142,100 @@
         let currentSymbol = 'BTCUSDT';
         let widget = null;
 
-        // Функция создания виджета TradingView (разные символы для разных валют)
+        // Получение пары для TradingView и отображения цены
+        function getTradingViewSymbol(symbol) {
+            if (symbol === 'BTCUSDT') return 'BINANCE:BTCUSDT';
+            if (symbol === 'TONUSDT') return 'BINANCE:TONUSDT';
+            if (symbol === 'USDTRUB') return 'BINANCE:USDTRUB';
+            if (symbol === 'EURRUB') return 'MOEX:EUR/RUB';
+            return 'BINANCE:BTCUSDT';
+        }
+
+        // Создание виджета TradingView с ПОЛНОЙ панелью инструментов
         function createWidget(symbol) {
             const container = document.getElementById('tradingview_widget');
             container.innerHTML = '';
             
-            let tvSymbol;
-            if (symbol === 'BTCUSDT') tvSymbol = 'BINANCE:BTCUSDT';
-            else if (symbol === 'TONUSDT') tvSymbol = 'BINANCE:TONUSDT';
-            else if (symbol === 'USDTRUB') tvSymbol = 'BINANCE:USDTRUB';
-            else if (symbol === 'EURRUB') tvSymbol = 'MOEX:EUR/RUB';
-            else tvSymbol = 'BINANCE:BTCUSDT'; // fallback
-
+            const tvSymbol = getTradingViewSymbol(symbol);
+            
             widget = new TradingView.widget({
-                autosize: true,
+                // Основные параметры
+                container_id: 'tradingview_widget',
+                width: '100%',
+                height: 500,
                 symbol: tvSymbol,
-                interval: '60',
+                interval: '60',               // 1 час
                 timezone: 'Europe/Moscow',
                 theme: 'dark',
-                style: '1',
+                style: '1',                  // 1 - свечи, 2 - линии, 3 - бары, 4 - область
                 locale: 'ru',
+                
+                // Панели и инструменты
                 toolbar_bg: '#0b0e11',
-                enable_publishing: false,
-                hide_top_toolbar: false,
-                hide_legend: false,
+                hide_top_toolbar: false,      // ПОКАЗЫВАЕМ верхнюю панель (таймфреймы, стили, индикаторы)
+                hide_legend: false,           // показываем легенду
+                allow_symbol_change: true,    // разрешаем менять символ (но мы управляем через кнопки)
+                details: true,               // подробная информация о символе
+                hotlist: true,              // список популярных инструментов
+                calendar: false,
+                
+                // Рисование и расширенные функции
+                drawing_toolbar: 'default',   // панель рисования (линии, тренды, фигуры)
+                studies: ['MAExp@tv-basicstudies-1', 'Volume@tv-basicstudies-1'], // индикаторы по умолчанию
+                
+                // Внешний вид
+                display_mode: 'adaptive',
                 save_image: false,
-                container_id: 'tradingview_widget'
+                enable_publishing: false
             });
         }
 
-        // Функция получения цены и изменения
+        // Функция получения цены и изменения для разных валют
         async function fetchPrice(symbol) {
             try {
+                // EUR/RUB через exchangerate.host (бесплатно, без ключа)
                 if (symbol === 'EURRUB') {
-                    // Используем бесплатный API exchangerate.host для EUR/RUB
                     const response = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=RUB');
                     const data = await response.json();
                     const price = data.rates.RUB.toFixed(2);
-                    // Для изменения цены за 24ч нужно другое API, пропустим
-                    document.getElementById('price').textContent = `${price} ₽`;
-                    document.getElementById('change').textContent = '—';
-                } 
-                else if (symbol === 'USDTRUB') {
-                    // Binance API для USDT/RUB
-                    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=USDTRUB');
-                    const data = await response.json();
-                    const price = parseFloat(data.lastPrice).toFixed(2);
-                    const change = parseFloat(data.priceChangePercent).toFixed(2);
+                    // Получаем изменение за 24ч через исторические данные (сравнение с вчера)
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yStr = yesterday.toISOString().split('T')[0];
+                    const histResp = await fetch(`https://api.exchangerate.host/${yStr}?base=EUR&symbols=RUB`);
+                    const histData = await histResp.json();
+                    const yestPrice = histData.rates.RUB;
+                    const change = ((price - yestPrice) / yestPrice * 100).toFixed(2);
+                    
                     document.getElementById('price').textContent = `${price} ₽`;
                     const changeEl = document.getElementById('change');
                     changeEl.textContent = `${change}%`;
                     changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
-                }
+                } 
+                // Остальные через Binance
                 else {
-                    // Binance API для BTCUSDT, TONUSDT (к доллару)
-                    const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+                    let apiSymbol = symbol;
+                    // Для USDT/RUB используем USDTUSDT? Нет, у Binance есть USDTRUB
+                    if (symbol === 'USDTRUB') apiSymbol = 'USDTRUB';
+                    const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${apiSymbol}`);
                     const data = await response.json();
-                    const price = parseFloat(data.lastPrice).toFixed(2);
-                    const change = parseFloat(data.priceChangePercent).toFixed(2);
-                    document.getElementById('price').textContent = `$${price}`;
+                    
+                    let price, change;
+                    if (symbol === 'BTCUSDT' || symbol === 'TONUSDT') {
+                        price = parseFloat(data.lastPrice).toFixed(2);
+                        change = parseFloat(data.priceChangePercent).toFixed(2);
+                        document.getElementById('price').textContent = `$${price}`;
+                    } else {
+                        price = parseFloat(data.lastPrice).toFixed(2);
+                        change = parseFloat(data.priceChangePercent).toFixed(2);
+                        document.getElementById('price').textContent = `${price} ₽`;
+                    }
                     const changeEl = document.getElementById('change');
                     changeEl.textContent = `${change}%`;
                     changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
                 }
             } catch (e) {
+                console.error(e);
                 document.getElementById('price').textContent = '—';
                 document.getElementById('change').textContent = '—';
             }
